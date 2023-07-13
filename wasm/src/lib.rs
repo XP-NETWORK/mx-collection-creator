@@ -20,7 +20,7 @@ multiversx_sc_wasm_adapter::endpoints! {
     (
         collections
         creators
-        create_nft_collection
+        create_collection
         callBack
     )
 }
