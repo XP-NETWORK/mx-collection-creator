@@ -73,11 +73,55 @@ pub trait CollectionCreator {
                     .esdt_system_sc_proxy()
                     .transfer_ownership(&tid, &owner)
                     .async_call()
+                    .with_callback(self.callbacks().esdt_set_special_roles(owner, tid))
                     .call_and_exit();
             }
             ManagedAsyncCallResult::Err(err) => {
                 panic!("Error issuing ESDT({}): {:?}", err.err_code, err.err_msg);
             }
         };
+    }
+
+    #[callback]
+    fn esdt_set_special_roles(
+        &self,
+        owner: ManagedAddress,
+        identifier: TokenIdentifier,
+        #[call_result] result: ManagedAsyncCallResult<IgnoreValue>,
+    ) {
+        match result {
+            ManagedAsyncCallResult::Ok(_) => self
+                .send()
+                .esdt_system_sc_proxy()
+                .set_special_roles(
+                    &owner,
+                    &identifier,
+                    [EsdtLocalRole::NftBurn, EsdtLocalRole::NftCreate]
+                        .iter()
+                        .map(|e| e.clone()),
+                )
+                .async_call()
+                .with_callback(self.callbacks().after_set_roles_callback())
+                .call_and_exit(),
+            ManagedAsyncCallResult::Err(err) => {
+                panic!(
+                    "Error Transferring Ownership of ESDT({}): {:?}",
+                    err.err_code, err.err_msg
+                );
+            }
+        }
+    }
+
+    #[callback]
+    fn after_set_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<IgnoreValue>) {
+        match result {
+            ManagedAsyncCallResult::Ok(_) => {}
+            ManagedAsyncCallResult::Err(err) => {
+                panic!(
+                    "Error setting special roles of ESDT({}): {:?}",
+                    err.err_code, err.err_msg
+                );
+            }
+        }
     }
 }
